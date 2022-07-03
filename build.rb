@@ -40,7 +40,9 @@ graals = [
 
 # Historical glitches - not worth investigation:
 
-# Some Graal releases don't seem to include Ruby? I think Ruby didn't change is the reason why.
+# Some Graal releases don't seem to include Ruby? I think Ruby didn't change
+# is the reason why, but if the compiler changed it would still make a
+# difference to Ruby.
 missing_ruby = [
   '19.3.5',
   '19.3.6',
@@ -116,8 +118,8 @@ graals.each do |url, dir, version|
       FileUtils.copy Dir.glob('graal_dumps/**/HotSpotCompilation-*Example.example*.cfg').first, cfg_file
     end
 
-    system 'gzip', bgv_file unless File.exist?(bgvz_file)
-    system 'gzip', cfg_file unless File.exist?(cfgz_file)
+    system 'gzip', '-k9', bgv_file unless File.exist?(bgvz_file)
+    system 'gzip', '-k9', cfg_file unless File.exist?(cfgz_file)
   ensure
     system 'rm', '-rf', 'graal_dumps'
   end
@@ -166,8 +168,8 @@ graals.each do |url, dir, version|
         FileUtils.copy Dir.glob('graal_dumps/**/TruffleHotSpotCompilation-*#example*.cfg').first, cfg_file unless no_cfg
       end
 
-      system 'gzip', '-9', bgv_file unless File.exist?(bgvz_file)
-      system 'gzip', '-9', cfg_file unless File.exist?(cfgz_file) || no_cfg
+      system 'gzip', '-k9', bgv_file unless File.exist?(bgvz_file)
+      system 'gzip', '-k9', cfg_file unless File.exist?(cfgz_file) || no_cfg
     ensure
       system 'rm', '-rf', 'graal_dumps'
     end
