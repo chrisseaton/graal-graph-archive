@@ -72,6 +72,32 @@ no_truffle_cfg = [
   '22.1.0'
 ]
 
+no_truffle_inline_only = [
+  '19.3.0',
+  '19.3.0.2',
+  '19.3.1',
+  '19.3.2',
+  '19.3.3',
+  '19.3.4',
+  '19.3.5',
+  '19.3.6',
+  '20.0.0',
+  '20.1.0',
+  '20.2.0',
+  '20.3.0',
+  '20.3.1',
+  '20.3.1.2',
+  '20.3.2',
+  '20.3.3',
+  '20.3.4',
+  '20.3.5',
+  '20.3.6',
+  '21.0.0',
+  '21.0.0.2',
+  '21.1.0',
+  '21.2.0'
+]
+
 graals.each do |url, dir, version|
   tarball = File.basename(url)
   system 'wget', url unless File.exist?(tarball)
@@ -86,8 +112,6 @@ graals.each do |url, dir, version|
     cfgz_file = "#{cfg_file}.gz"
 
     unless File.exist?(bgv_file) && File.exist?(cfg_file)
-      puts "#{version} #{source}"
-
       jvm_args = [
         '-Xbatch',                                          # Make compilation synchronous, for simplicity
         '-XX:-TieredCompilation',                           # We're only interested in Graal, as the top-tier compiler
@@ -100,9 +124,12 @@ graals.each do |url, dir, version|
         '-Dgraal.Dump=:3'                                   # Dump detailed graphs
       ]
 
+      puts "#{version} #{source}"
+
       raise if Dir.exist?('graal_dumps')
 
       system "#{dir}/bin/javac", '-d', '.', source
+      
       IO.popen(["#{dir}/bin/java", *jvm_args, 'Example'], :err=>[:child, :out]) do |pipe|
         loop do
           if pipe.readline =~ /\bExample::example\b/
@@ -138,8 +165,6 @@ graals.each do |url, dir, version|
       no_cfg = no_truffle_cfg.include?(version)
 
       unless File.exist?(bgv_file) && (File.exist?(cfg_file) || no_cfg)
-        puts "#{version} #{source}"
-
         ruby_args = [
           '--jvm',                                            # Use the JVM
           '--experimental-options',
@@ -150,6 +175,19 @@ graals.each do |url, dir, version|
           '--engine.TraceCompilation',                        # Print when compilation happens, so we know when our method has been compiled
           '--vm.Dgraal.Dump=Truffle:3'                        # Dump detailed graphs
         ]
+
+        if File.read(source) =~ /opaque/
+          if no_truffle_inline_only.include?(version)
+            # We can't compile this one! We can't stop the opaque calls being
+            # inlined because the version of Truffle doesn't support
+            # --engine.InlineOnly.
+            next
+          else
+            ruby_args << '--engine.InlineOnly=~opaque'
+          end
+        end
+
+        puts "#{version} #{source}"
 
         raise if Dir.exist?('graal_dumps')
 
